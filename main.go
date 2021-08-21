@@ -13,6 +13,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 )
 
 //go:embed html/index.html
@@ -41,7 +42,6 @@ func base64img(fn string) (string, error) {
 	return fmt.Sprintf("data:%s;base64,%s", mime, enc), nil
 }
 func isFileToIgnore(fn string) bool {
-	log.Println(fn, " ", fn[0])
 	if fn[0] == '.' {
 		return true
 	}
@@ -98,7 +98,6 @@ func sortedFileNames(files []fs.FileInfo) []string {
 			}
 		}
 		add(e)
-		log.Println(s, r)
 		return r
 	}
 	compare_obj := func(a, b interface{}) int {
@@ -147,8 +146,29 @@ func sortedFileNames(files []fs.FileInfo) []string {
 	return fns
 }
 
+func writeFile(s string) error {
+	body := time.Now().Format("2006-01-02")
+	for ix := 0; ; ix++ {
+		fn := func() string {
+			if ix == 0 {
+				return body + ".html"
+			}
+			return fmt.Sprintf("%s_%d.html", body, ix)
+		}()
+		f, err := os.OpenFile(fn, os.O_CREATE|os.O_EXCL, 0664)
+		if pe, ok := err.(*fs.PathError); pe != nil && ok && pe.Err.Error() == "file exists" {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		f.WriteString(s)
+		return nil
+	}
+}
+
 func main() {
-	log.Println(htmlString)
 	dir, _ := path.Split(os.Args[0])
 	imdir := path.Join(dir, "html/sample_images")
 	files, err := ioutil.ReadDir(imdir)
@@ -167,8 +187,7 @@ func main() {
 		s += fmt.Sprintf("<img src='%s'/>", url)
 	}
 	const key = "$$$image_tags$$$"
-	replaced := strings.Replace(htmlString, key, s, 1)
-	if replaced == "" {
-		fmt.Println(replaced)
+	if err := writeFile(strings.Replace(htmlString, key, s, 1)); err != nil {
+		log.Fatal(err)
 	}
 }
