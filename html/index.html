@@ -1,40 +1,71 @@
 <style>
-  div img{
-    position:absolute;
-    height:90vh;
+  div img {
+    position: absolute;
+    height: 90vh;
   }
-  .show{
-    display: none;
-  }
-  .hide{
+
+  .show {
     display: block;
   }
+
+  .hide {
+    display: none;
+  }
+
+  .side {
+    width: 150px;
+  }
+
+  .images {
+    width: calc(99vw-160px);
+    margin-left: 10px;
+    /*サイドバーとメインコンテンツの間に隙間                    をあけた*/
+  }
+
+  body {
+    display: flex;
+    /*サイドバーとメインコンテンツを横並びにする                指定をした*/
+  }
+
+  #list .file {
+    font-size: x-small;
+  }
+
+  #frame_rate {
+    width: 4em;
+  }
 </style>
+
 <body>
-  フレームレート: <input id="frame_rate" type="text" value="1"/> 枚 / 秒
-  <hr noshade="noshade"/>
+  <div class="side">
+    フレームレート: <br />
+    <input id="frame_rate" type="text" value="5" /> 枚 / 秒
+    <div id="list">
+
+    </div>
+  </div>
   <div id="images">
     $$$image_tags$$$
   </div>
 </body>
 <script>
-  const set_image = (fn)=>{
+  const set_image = (fn) => {
     const div = document.getElementById("images");
-    const im = document.createElement( "img" );
-    im.setAttribute( "src", "./sample_images/"+fn );
+    const im = document.createElement("img");
+    im.setAttribute("src", "./sample_images/" + fn);
     div.appendChild(im);
   };
-  const set_images = (a)=>{
-    for( const im of a ){
+  const set_images = (a) => {
+    for (const im of a) {
       set_image(im);
     }
   };
-  const progress_frame = (frame)=>{
+  const progress_frame = (frame) => {
+    console.log(frame);
     const div = document.getElementById("images");
-    frame = (frame+1) % div.children.length;
-    for( let f=0 ; f<div.children.length ; ++f ){
+    for (let f = 0; f < div.children.length; ++f) {
       const e = div.children[f];
-      if (div.children.length-f<=frame ){
+      if (frame === f) {
         e.classList.add("show");
         e.classList.remove("hide");
       } else {
@@ -42,36 +73,56 @@
         e.classList.add("hide");
       }
     }
-    return frame;
+    return (frame + 1) % div.children.length;
   };
-  
+
   let timer_id = null;
 
-  const getPicIntervalMillisec = ()=>{
+  const getPicIntervalMillisec = () => {
     let frame_rate = parseFloat(document.getElementById("frame_rate").value);
-    if (!frame_rate || frame_rate<=0 ){
+    if (!frame_rate || frame_rate <= 0) {
       return 1000;
     }
-    return 1000/frame_rate;
+    return 1000 / frame_rate;
   };
 
-  const runAnimation = ()=>{
+  const runAnimation = () => {
     let frame = 0;
-    timer_id = setInterval( ()=>{
+    timer_id = setInterval(() => {
       frame = progress_frame(frame);
-    }, getPicIntervalMillisec() );
+    }, getPicIntervalMillisec());
   };
 
-  const start = ()=>{
+  const start = () => {
     t = document.getElementById("frame_rate");
     runAnimation();
-    t.onchange = ()=>{
-      if ( null !== timer_id ){
-        clearInterval(timer_id);
-        runAnimation();
+    t.onkeydown = (e) => {
+      if (e.key != "Enter") {
+        return;
       }
+      if (null !== timer_id) {
+        clearInterval(timer_id);
+      }
+      runAnimation();
     }
   };
+  const prepare_list = () => {
+    const list = document.getElementById("list");
+    const images = document.getElementById("images");
+    for (let ix = 0; ix < images.children.length; ++ix) {
+      const c = images.children[ix];
+      const e = document.createElement("div");
+      e.setAttribute("class", "file");
+      e.innerText = c.getAttribute("name");
+      list.append(e);
+      e.onmouseover = ((i) => {
+        return () => {
+          clearInterval(timer_id);
+          progress_frame(i);
+        }
+      })(ix)
+    }
+  };
+  prepare_list();
   start();
 </script>
-
