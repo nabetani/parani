@@ -45,14 +45,11 @@ func isFileToIgnore(fn string) bool {
 	if fn[0] == '.' {
 		return true
 	}
-	switch strings.ToLower(fn) {
-	case "thumbs.db", "ehthumbs.db", "ehthumbs_vista.db", "desktop.ini", "icon":
-		return true
-	}
 	switch strings.ToLower(path.Ext(fn)) {
-	case ".stackdump", ".lnk":
+	case ".png", ".jpeg", ".jpe", ".jpg":
+		return false
 	}
-	return false
+	return true
 }
 
 func sortedFileNames(files []fs.FileInfo) []string {
@@ -155,7 +152,7 @@ func writeFile(s string) error {
 			}
 			return fmt.Sprintf("%s_%d.html", body, ix)
 		}()
-		f, err := os.OpenFile(fn, os.O_CREATE|os.O_EXCL, 0664)
+		f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0664)
 		if pe, ok := err.(*fs.PathError); pe != nil && ok && pe.Err.Error() == "file exists" {
 			continue
 		}
@@ -163,14 +160,15 @@ func writeFile(s string) error {
 			return err
 		}
 		defer f.Close()
-		f.WriteString(s)
+		if _, err := f.WriteString(s); err != nil {
+			return err
+		}
 		return nil
 	}
 }
 
 func main() {
-	dir, _ := path.Split(os.Args[0])
-	imdir := path.Join(dir, "html/sample_images")
+	imdir := "."
 	files, err := ioutil.ReadDir(imdir)
 	if err != nil {
 		log.Fatal(err)
@@ -184,7 +182,7 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		s += fmt.Sprintf("<img src='%s'/>", url)
+		s += fmt.Sprintf("<img src='%s'/ name='%s'>", url, fn)
 	}
 	const key = "$$$image_tags$$$"
 	if err := writeFile(strings.Replace(htmlString, key, s, 1)); err != nil {
