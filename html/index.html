@@ -1,0 +1,54 @@
+<style>
+  div img{
+    position:absolute;
+  }
+  .show{
+    display: none;
+  }
+  .hide{
+    display: block;
+  }
+</style>
+<body>
+  <div id="images"></div>
+</body>
+<script>
+  const set_image = (fn)=>{
+    const div = document.getElementById("images");
+    const im = document.createElement( "img" );
+    im.setAttribute( "src", "./sample_images/"+fn );
+    div.appendChild(im);
+  };
+  const set_images = (a)=>{
+    for( const im of a ){
+      set_image(im);
+    }
+  };
+  const progress_frame = (frame)=>{
+    const div = document.getElementById("images");
+    frame = (frame+1) % div.children.length;
+    for( let f=0 ; f<div.children.length ; ++f ){
+      const e = div.children[f];
+      if (div.children.length-f<=frame ){
+        e.classList.add("show");
+        e.classList.remove("hide");
+      } else {
+        e.classList.remove("show");
+        e.classList.add("hide");
+      }
+    }
+    return frame;
+  };
+  const start = ()=>{
+    let frame=0;
+    setInterval( ()=>{
+      frame = progress_frame(frame);
+    }, 1000 );
+  };
+  set_images( [
+    "0.jpg", "1.jpg", "2.jpg", "3.jpg", "4.jpg",
+    "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "10.jpg"
+  ] );
+  start();
+</script>
+
