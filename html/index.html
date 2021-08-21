@@ -10,7 +10,11 @@
   }
 </style>
 <body>
-  <div id="images"></div>
+  フレームレート: <input id="frame_rate" type="text" value="1"/> 枚 / 秒
+  <hr noshade="noshade"/>
+  <div id="images">
+    $$$image_tags$$$
+  </div>
 </body>
 <script>
   const set_image = (fn)=>{
@@ -39,11 +43,33 @@
     }
     return frame;
   };
-  const start = ()=>{
-    let frame=0;
-    setInterval( ()=>{
+  
+  let timer_id = null;
+
+  const getPicIntervalMillisec = ()=>{
+    let frame_rate = parseFloat(document.getElementById("frame_rate").value);
+    if (!frame_rate || frame_rate<=0 ){
+      return 1000;
+    }
+    return 1000/frame_rate;
+  };
+
+  const runAnimation = ()=>{
+    let frame = 0;
+    timer_id = setInterval( ()=>{
       frame = progress_frame(frame);
-    }, 1000 );
+    }, getPicIntervalMillisec() );
+  };
+
+  const start = ()=>{
+    t = document.getElementById("frame_rate");
+    runAnimation();
+    t.onchange = ()=>{
+      if ( null !== timer_id ){
+        clearInterval(timer_id);
+        runAnimation();
+      }
+    }
   };
   set_images( [
     "0.jpg", "1.jpg", "2.jpg", "3.jpg", "4.jpg",
