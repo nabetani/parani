@@ -5,10 +5,13 @@ import (
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
 	"path"
+	"sort"
 	"strings"
 )
 
@@ -52,6 +55,98 @@ func isFileToIgnore(fn string) bool {
 	return false
 }
 
+func sortedFileNames(files []fs.FileInfo) []string {
+	fns := []string{}
+	for _, f := range files {
+		fns = append(fns, f.Name())
+	}
+	blocks := func(s string) []interface{} {
+		r := []interface{}{}
+		e := ""
+		const (
+			none  = iota
+			num   = iota
+			other = iota
+		)
+		t := none
+		chtype := func(ch uint8) int {
+			if '0' <= ch && ch <= '9' {
+				return num
+			}
+			return other
+		}
+		add := func(e string) {
+			switch t {
+			case none:
+				// do nothing
+			case num:
+				i := new(big.Int)
+				i.SetString(e, 10)
+				r = append(r, i)
+			case other:
+				r = append(r, e)
+			}
+		}
+		for ix := 0; ix < len(s); ix++ {
+			newT := chtype(s[ix])
+			if newT == t {
+				e += s[ix : ix+1]
+			} else {
+				add(e)
+				e = s[ix : ix+1]
+				t = newT
+			}
+		}
+		add(e)
+		log.Println(s, r)
+		return r
+	}
+	compare_obj := func(a, b interface{}) int {
+		na, naOk := a.(*big.Int)
+		nb, nbOk := b.(*big.Int)
+		if naOk && nbOk {
+			return na.Cmp(nb)
+		}
+		if naOk {
+			return -1
+		}
+		if nbOk {
+			return 1
+		}
+		sa, saOk := a.(string)
+		sb, sbOk := b.(string)
+		if saOk && sbOk {
+			return strings.Compare(sa, sb)
+		}
+		log.Fatalf("a=%v b=%v", a, b)
+		return 0
+	}
+	lessBlock := func(a, b []interface{}) bool {
+		la := len(a)
+		lb := len(b)
+		l := func() int {
+			if la < lb {
+				return la
+			}
+			return lb
+		}()
+		for i := 0; i < l; i++ {
+			c := compare_obj(a[0], b[i])
+			if c != 0 {
+				return c < 0
+			}
+		}
+		return la < lb
+	}
+
+	sort.Slice(fns, func(i, j int) bool {
+		bi := blocks(fns[i])
+		bj := blocks(fns[j])
+		return lessBlock(bi, bj)
+	})
+	return fns
+}
+
 func main() {
 	log.Println(htmlString)
 	dir, _ := path.Split(os.Args[0])
@@ -61,11 +156,11 @@ func main() {
 		log.Fatal(err)
 	}
 	s := ""
-	for _, file := range files {
-		if isFileToIgnore(file.Name()) {
+	for _, fn := range sortedFileNames(files) {
+		if isFileToIgnore(fn) {
 			continue
 		}
-		url, err := base64img(path.Join(imdir, file.Name()))
+		url, err := base64img(path.Join(imdir, fn))
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -73,5 +168,7 @@ func main() {
 	}
 	const key = "$$$image_tags$$$"
 	replaced := strings.Replace(htmlString, key, s, 1)
-	fmt.Println(replaced)
+	if replaced == "" {
+		fmt.Println(replaced)
+	}
 }
