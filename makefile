@@ -1,8 +1,17 @@
 run : parani
-	cd html/sample_images/ && rm *.html && ../../parani
+	cd html/sample_images/ && rm -f *.html && ../../parani
+
+GO=go
 
 parani : main.go go.mod makefile html/index.html
-	$(shell goenv which go) build
+	$(GO) version
+	printenv | grep PATH
+	$(GO) build
 
 parani.exe : main.go go.mod makefile html/index.html
-	GOOS=windows GOARCH=amd64 $(shell goenv which go) build -o parani.exe
+	GOOS=windows GOARCH=amd64 $(GO) build -o parani.exe
+
+clean:
+	rm -f parani
+	rm -f parani.exe
+	rm -f html/sample_images/*.html
