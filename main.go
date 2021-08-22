@@ -153,7 +153,7 @@ func writeFile(s string) error {
 			return fmt.Sprintf("%s_%d.html", body, ix)
 		}()
 		f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0664)
-		if pe, ok := err.(*fs.PathError); pe != nil && ok && pe.Err.Error() == "file exists" {
+		if pe, ok := err.(*fs.PathError); pe != nil && ok && strings.Contains(pe.Err.Error(), "file exists") {
 			continue
 		}
 		if err != nil {
